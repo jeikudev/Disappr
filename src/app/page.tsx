@@ -5,28 +5,46 @@ import { client } from "@/lib/client";
 import { convertCase } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Copy } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const ANIMALS = ["cat", "dog", "fox", "lion", "tiger", "bear"];
+const STORAGE_KEY = "anonymous_name";
 
 export const generateName = () => {
   const animalName = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
   const randomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-  return `${animalName}-${randomId}`;
+  return `anonymous-${animalName}-${randomId}`;
 };
 
 export default function Home() {
+  const router = useRouter();
   const [anonymousName, setAnonymousName] = useState("");
   const [copied, setCopied] = useState(false);
 
   const createRoom = useMutation({
     mutationFn: async () => {
       const response = await client.room.create.post();
+
+      if (response.status === 200) {
+        router.push(`/room/${response.data?.roomId}`);
+      }
     },
   });
 
   useEffect(() => {
-    setAnonymousName(generateName());
+    const main = () => {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        setAnonymousName(stored);
+        return;
+      }
+
+      const newName = generateName();
+      localStorage.setItem(STORAGE_KEY, newName);
+    };
+
+    main();
   }, []);
 
   const handleCopy = () => {
